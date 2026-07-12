@@ -2,14 +2,23 @@ local BASE_URL = "https://raw.githubusercontent.com/broskimaterial/NMHub/main"
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Services = loadstring(game:HttpGet(BASE_URL .. "/Services.lua"))()()
+Services._connections = {}
 local Utilities = loadstring(game:HttpGet(BASE_URL .. "/Utilities.lua"))()()
 local Notifications = loadstring(game:HttpGet(BASE_URL .. "/Notifications.lua"))()(Rayfield)
 
+local Logger = loadstring(game:HttpGet(BASE_URL .. "/Logger.lua"))()()
+
 local env = {
+	BASE_URL = BASE_URL,
 	Services = Services,
 	Utilities = Utilities,
+	Logger = Logger,
 	Notify = Notifications.Notify,
 }
+
+local Diagnostics = loadstring(game:HttpGet(BASE_URL .. "/Diagnostics.lua"))()(env)
+local ThemeManager = loadstring(game:HttpGet(BASE_URL .. "/ThemeManager.lua"))()({ Rayfield = Rayfield })
+local PluginManager = loadstring(game:HttpGet(BASE_URL .. "/PluginManager.lua"))()(env)
 
 local NoClip = loadstring(game:HttpGet(BASE_URL .. "/Modules/NoClip.lua"))()(env)
 local Flight = loadstring(game:HttpGet(BASE_URL .. "/Modules/Flight.lua"))()(env)
@@ -21,6 +30,9 @@ local Visuals = loadstring(game:HttpGet(BASE_URL .. "/Modules/Visuals.lua"))()(e
 --------------------------------------------------------------------
 local VersionInfo = loadstring(game:HttpGet(BASE_URL .. "/Version.lua"))()
 local CURRENT_VERSION = (VersionInfo and VersionInfo.Version) or "0.0.0"
+local CURRENT_BUILD = (VersionInfo and VersionInfo.Build) or 0
+env.Version = CURRENT_VERSION
+env.Build = CURRENT_BUILD
 
 local LATEST_VERSION
 local versionSuccess = pcall(function()
@@ -80,6 +92,13 @@ local function DestroyHub()
 	Flight:Cleanup()
 	InfiniteJump:Cleanup()
 	Visuals:Cleanup()
+
+	PluginManager.CleanupAll()
+
+	for _, conn in pairs(Services._connections) do
+		Utilities.CleanupConnection(conn)
+	end
+	Services._connections = {}
 
 	Utilities.ClearConnections()
 	Utilities.ClearInstances()
@@ -407,9 +426,40 @@ SettingsTab:CreateLabel("Built with Sirius (Rayfield) UI Library", "code")
 SettingsTab:CreateLabel("Features: NoClip, Flight, Air Jump, ESP", "list")
 SettingsTab:CreateLabel("All keybinds are rebindable in Keybinds tab", "keyboard")
 
+local ThemeSection = SettingsTab:CreateSection("Theme")
+local ThemeDropdown = SettingsTab:CreateDropdown({
+	Name = "Theme Selector",
+	Options = ThemeManager.GetThemes(),
+	CurrentOption = ThemeManager.GetCurrent(),
+	Flag = "ThemeDropdown",
+	Callback = function(Value)
+		ThemeManager.SetTheme(Value)
+	end,
+})
+
+local DiagnosticsSection = SettingsTab:CreateSection("Diagnostics")
+local FpsLabel = SettingsTab:CreateLabel("FPS: --", "activity")
+local PingLabel = SettingsTab:CreateLabel("Ping: -- ms", "wifi")
+
+task.spawn(function()
+	while task.wait(1) do
+		local data = Diagnostics.Collect()
+		FpsLabel:Set("FPS: " .. data.FPS)
+		PingLabel:Set("Ping: " .. data.Ping .. " ms | Memory: " .. math.floor(data.Memory) .. " KB")
+	end
+end)
+
 --------------------------------------------------------------------
 -- Initialization
 --------------------------------------------------------------------
+task.spawn(function()
+	PluginManager.LoadAll()
+	local count = PluginManager.GetCount()
+	if count > 0 then
+		Logger.Info("Plugins loaded: " .. count)
+	end
+end)
+
 if Services.LocalPlayer.Character then
 	OnCharacterAdded(Services.LocalPlayer.Character)
 end
