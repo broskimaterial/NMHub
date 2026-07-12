@@ -92,6 +92,7 @@ return function(env)
 		PlayerDrawings = {},
 		HighlightInstances = {},
 		FrameCounter = 0,
+		PlayerList = {},
 		Settings = {
 			Box = false,
 			CornerBox = false,
@@ -302,12 +303,14 @@ return function(env)
 		local useTextOutline = self.Settings.TextOutline
 		local baseTransparency = self.Settings.Transparency
 		local textSize = self.Settings.TextSize
-		local useDistanceFade = self.Settings.DistanceFade
 		local tracerOrigin = self.Settings.TracerOrigin
+		local localPlayer = Services.LocalPlayer
+		local playerList = self.PlayerList
 
-		for _, player in pairs(Services.Players:GetPlayers()) do
+		for idx = 1, #playerList do
+			local player = playerList[idx]
 			repeat
-				if player == Services.LocalPlayer then break end
+				if player == localPlayer then break end
 
 				local char = player.Character
 				if not char then
@@ -319,6 +322,16 @@ return function(env)
 
 				local head = char:FindFirstChild("Head")
 				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+
+				if root then
+					local _, rootOnScreen = camera:WorldToViewportPoint(root.Position)
+					if not rootOnScreen then
+						if self.PlayerDrawings[player] then
+							self:HidePlayerDrawings(player)
+						end
+						break
+					end
+				end
 
 				local minX, minY, maxX, maxY, boxWidth, boxHeight, visible = GetCharacterScreenBounds(char)
 				if not visible then
@@ -363,12 +376,12 @@ return function(env)
 							line.Color = displayColor
 							line.Thickness = thickness
 							line.Transparency = baseTransparency
-							line.Visible = self.Settings.CornerBox
+							line.Visible = true
 						end
 					end
 				else
-					for _, line in pairs(d.CornerBox) do
-						line.Visible = false
+					for i = 1, #d.CornerBox do
+						d.CornerBox[i].Visible = false
 					end
 				end
 
@@ -389,7 +402,7 @@ return function(env)
 						d.Distance.Visible = false
 					else
 						d.Distance.Position = Vector2.new(minX + boxWidth / 2, maxY + 2)
-						d.Distance.Text = tostring(math.floor(dist)) .. " studs"
+						d.Distance.Text = math.floor(dist) .. "s"
 						d.Distance.Color = displayColor
 						d.Distance.Size = textSize
 						d.Distance.Outline = useTextOutline
@@ -404,27 +417,24 @@ return function(env)
 					local healthStr = "?"
 					local healthPct = 1
 					if hum then
-						healthStr = tostring(math.floor(hum.Health)) .. "/" .. tostring(math.floor(hum.MaxHealth))
+						healthStr = math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth)
 						healthPct = hum.Health / hum.MaxHealth
 					end
-					d.Health.Position = Vector2.new(maxX + 4, minY + boxHeight / 2 - 6)
-					d.Health.Text = healthStr
-					d.Health.Size = textSize
-					d.Health.Color = Color3.fromRGB(
+					local healthColor = Color3.fromRGB(
 						math.floor(255 * (1 - healthPct)),
 						math.floor(255 * healthPct),
 						0
 					)
+					d.Health.Position = Vector2.new(maxX + 4, minY + boxHeight / 2 - 6)
+					d.Health.Text = healthStr
+					d.Health.Size = textSize
+					d.Health.Color = healthColor
 					d.Health.Outline = useTextOutline
 					d.Health.Visible = true
 
 					d.HealthBar.Size = Vector2.new(4, boxHeight)
 					d.HealthBar.Position = Vector2.new(minX - 6, minY)
-					d.HealthBar.Color = Color3.fromRGB(
-						math.floor(255 * (1 - healthPct)),
-						math.floor(255 * healthPct),
-						0
-					)
+					d.HealthBar.Color = healthColor
 					d.HealthBar.Visible = true
 				else
 					d.Health.Visible = false
@@ -432,7 +442,7 @@ return function(env)
 				end
 
 				if self.Settings.Tracers and root then
-					local rootVec, rootOnScreen = camera:WorldToViewportPoint(root.Position)
+					local rootVec = camera:WorldToViewportPoint(root.Position)
 					local screenSize = camera.ViewportSize
 					if tracerOrigin == "Crosshair" then
 						d.Tracer.From = Vector2.new(screenSize.X / 2, screenSize.Y / 2)
@@ -452,7 +462,7 @@ return function(env)
 				end
 
 				if self.Settings.HeadDot and head then
-					local headVec, headOnScreen = camera:WorldToViewportPoint(head.Position)
+					local headVec = camera:WorldToViewportPoint(head.Position)
 					d.HeadDot.Position = Vector2.new(headVec.X, headVec.Y)
 					d.HeadDot.Color = displayColor
 					d.HeadDot.Visible = true
@@ -463,29 +473,29 @@ return function(env)
 				if self.Settings.Skeleton then
 					local isR6 = char:FindFirstChild("Torso") ~= nil
 					local bones = isR6 and SkeletonBonesR6 or SkeletonBones
-					for i, bonePair in pairs(bones) do
+					local boneList = d.Skeleton
+					for i = 1, #bones do
+						local bonePair = bones[i]
 						local part1 = char:FindFirstChild(bonePair[1])
 						local part2 = char:FindFirstChild(bonePair[2])
 						if part1 and part2 then
-							local p1, onScreen1 = camera:WorldToViewportPoint(part1.Position)
-							local p2, onScreen2 = camera:WorldToViewportPoint(part2.Position)
-							if onScreen1 and onScreen2 and d.Skeleton[i] then
-								d.Skeleton[i].From = Vector2.new(p1.X, p1.Y)
-								d.Skeleton[i].To = Vector2.new(p2.X, p2.Y)
-								d.Skeleton[i].Color = displayColor
-								d.Skeleton[i].Thickness = thickness
-								d.Skeleton[i].Transparency = baseTransparency
-								d.Skeleton[i].Visible = true
-							elseif d.Skeleton[i] then
-								d.Skeleton[i].Visible = false
+							local p1 = camera:WorldToViewportPoint(part1.Position)
+							local p2 = camera:WorldToViewportPoint(part2.Position)
+							if boneList[i] then
+								boneList[i].From = Vector2.new(p1.X, p1.Y)
+								boneList[i].To = Vector2.new(p2.X, p2.Y)
+								boneList[i].Color = displayColor
+								boneList[i].Thickness = thickness
+								boneList[i].Transparency = baseTransparency
+								boneList[i].Visible = true
 							end
-						elseif d.Skeleton[i] then
-							d.Skeleton[i].Visible = false
+						elseif boneList[i] then
+							boneList[i].Visible = false
 						end
 					end
 				else
-					for _, line in pairs(d.Skeleton) do
-						line.Visible = false
+					for i = 1, #d.Skeleton do
+						d.Skeleton[i].Visible = false
 					end
 				end
 
@@ -523,18 +533,30 @@ return function(env)
 			testSquare:Remove()
 		end
 
+		self.PlayerList = {}
 		for _, player in pairs(Services.Players:GetPlayers()) do
 			if player ~= Services.LocalPlayer then
+				self.PlayerList[#self.PlayerList + 1] = player
 				self:CreatePlayerDrawings(player)
 			end
 		end
 
 		self.PlayerAddedConn = Services.Players.PlayerAdded:Connect(function(player)
-			ESP:CreatePlayerDrawings(player)
+			if player ~= Services.LocalPlayer then
+				self.PlayerList[#self.PlayerList + 1] = player
+				ESP:CreatePlayerDrawings(player)
+			end
 		end)
 		table.insert(Utilities.Connections, self.PlayerAddedConn)
 
 		self.PlayerRemovingConn = Services.Players.PlayerRemoving:Connect(function(player)
+			local list = self.PlayerList
+			for i = #list, 1, -1 do
+				if list[i] == player then
+					table.remove(list, i)
+					break
+				end
+			end
 			ESP:DestroyPlayerDrawings(player)
 		end)
 		table.insert(Utilities.Connections, self.PlayerRemovingConn)

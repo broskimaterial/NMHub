@@ -42,6 +42,7 @@ return function(env)
 		self.FlightGyro.Parent = rootPart
 		table.insert(Utilities.Instances, self.FlightGyro)
 
+		local uis = Services.UserInputService
 		self.Connection = Services.RunService.RenderStepped:Connect(function(dt)
 			if not Flight.Enabled then return end
 			local char = Services.LocalPlayer.Character
@@ -56,22 +57,22 @@ return function(env)
 			local speed = Flight.Speed
 			local vertSpeed = Flight.VerticalSpeed
 
-			if Services.UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			if uis:IsKeyDown(Enum.KeyCode.W) then
 				moveDir = moveDir + cameraCFrame.LookVector
 			end
-			if Services.UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			if uis:IsKeyDown(Enum.KeyCode.S) then
 				moveDir = moveDir - cameraCFrame.LookVector
 			end
-			if Services.UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			if uis:IsKeyDown(Enum.KeyCode.A) then
 				moveDir = moveDir - cameraCFrame.RightVector
 			end
-			if Services.UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			if uis:IsKeyDown(Enum.KeyCode.D) then
 				moveDir = moveDir + cameraCFrame.RightVector
 			end
-			if Services.UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			if uis:IsKeyDown(Enum.KeyCode.Space) then
 				moveDir = moveDir + Vector3.new(0, 1, 0) * (vertSpeed / speed)
 			end
-			if Services.UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+			if uis:IsKeyDown(Enum.KeyCode.LeftShift) then
 				moveDir = moveDir - Vector3.new(0, 1, 0) * (vertSpeed / speed)
 			end
 
