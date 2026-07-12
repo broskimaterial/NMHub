@@ -30,6 +30,60 @@ return function(env)
 		{"Torso", "Right Leg"},
 	}
 
+	local function GetCharacterScreenBounds(character)
+		local camera = Services.Workspace.CurrentCamera
+		if not camera or not character then
+			return 0, 0, 0, 0, 0, 0, false
+		end
+
+		local cf, size = character:GetBoundingBox()
+		if not cf or not size or size.Magnitude == 0 then
+			return 0, 0, 0, 0, 0, 0, false
+		end
+
+		local center = cf.Position
+		local half = size / 2
+
+		local corners = {
+			center + Vector3.new(-half.X, -half.Y, -half.Z),
+			center + Vector3.new( half.X, -half.Y, -half.Z),
+			center + Vector3.new(-half.X,  half.Y, -half.Z),
+			center + Vector3.new( half.X,  half.Y, -half.Z),
+			center + Vector3.new(-half.X, -half.Y,  half.Z),
+			center + Vector3.new( half.X, -half.Y,  half.Z),
+			center + Vector3.new(-half.X,  half.Y,  half.Z),
+			center + Vector3.new( half.X,  half.Y,  half.Z),
+		}
+
+		local minX, minY = math.huge, math.huge
+		local maxX, maxY = -math.huge, -math.huge
+		local anyOnScreen = false
+
+		for _, corner in ipairs(corners) do
+			local point, onScreen = camera:WorldToViewportPoint(corner)
+			if onScreen then
+				anyOnScreen = true
+			end
+			minX = math.min(minX, point.X)
+			minY = math.min(minY, point.Y)
+			maxX = math.max(maxX, point.X)
+			maxY = math.max(maxY, point.Y)
+		end
+
+		if not anyOnScreen then
+			return 0, 0, 0, 0, 0, 0, false
+		end
+
+		local width = maxX - minX
+		local height = maxY - minY
+
+		if width < 1 or height < 1 then
+			return 0, 0, 0, 0, 0, 0, false
+		end
+
+		return minX, minY, maxX, maxY, width, height, true
+	end
+
 	local ESP = {
 		Enabled = false,
 		Connection = nil,
@@ -67,7 +121,7 @@ return function(env)
 		d.Box.Transparency = 1
 
 		d.CornerBox = {}
-		for _ = 1, 4 do
+		for _ = 1, 8 do
 			local line = Drawing.new("Line")
 			line.Visible = false
 			line.Thickness = 1
@@ -202,13 +256,6 @@ return function(env)
 		return Color3.fromRGB(255, 255, 255)
 	end
 
-	function ESP:IsOnScreen(worldPos)
-		local camera = Services.Workspace.CurrentCamera
-		if not camera then return false, nil end
-		local vec, onScreen = camera:WorldToViewportPoint(worldPos)
-		return vec, onScreen
-	end
-
 	function ESP:GetCornerBoxLines(x, y, w, h, size)
 		size = size or math.min(w, h) * 0.2
 		if size > 10 then size = 10 end
@@ -242,9 +289,11 @@ return function(env)
 					break
 				end
 
-				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 				local head = char:FindFirstChild("Head")
-				if not root or not head then
+				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+
+				local minX, minY, maxX, maxY, boxWidth, boxHeight, visible = GetCharacterScreenBounds(char)
+				if not visible then
 					if self.PlayerDrawings[player] then
 						self:HidePlayerDrawings(player)
 					end
@@ -252,176 +301,161 @@ return function(env)
 				end
 
 				local color = self:GetPlayerColor(player)
+				local displayColor = Color3.fromRGB(
+					math.floor(color.R * 255),
+					math.floor(color.G * 255),
+					math.floor(color.B * 255)
+				)
 
-				local headPos, headOnScreen = self:IsOnScreen(head.Position)
-				local rootPos, rootOnScreen = self:IsOnScreen(root.Position)
-				if not headOnScreen and not rootOnScreen then
-					if self.PlayerDrawings[player] then
-						self:HidePlayerDrawings(player)
-					end
-					break
-				end
-
-				local dist = (camera.CFrame.Position - root.Position).Magnitude
 				local d = self.PlayerDrawings[player]
 				if not d then break end
 
-			-- Calculate box using actual projected body bounds (head to feet)
-			local screenHeight = (rootPos.Y - headPos.Y) * 2
-			local boxHeight = math.max(screenHeight, 20)
-			local boxWidth = boxHeight * 0.55
-			local boxPos = Vector2.new(rootPos.X - boxWidth / 2, headPos.Y)
-			local boxSize = Vector2.new(boxWidth, boxHeight)
+				if self.Settings.Box then
+					d.Box.Size = Vector2.new(boxWidth, boxHeight)
+					d.Box.Position = Vector2.new(minX, minY)
+					d.Box.Color = displayColor
+					d.Box.Transparency = 1
+					d.Box.Visible = true
+				else
+					d.Box.Visible = false
+				end
 
-			local displayColor = Color3.fromRGB(
-				math.floor(color.R * 255),
-				math.floor(color.G * 255),
-				math.floor(color.B * 255)
-			)
-
-			if self.Settings.Box then
-				d.Box.Size = boxSize
-				d.Box.Position = boxPos
-				d.Box.Color = displayColor
-				d.Box.Transparency = 1
-				d.Box.Visible = true
-			else
-				d.Box.Visible = false
-			end
-
-			if self.Settings.CornerBox then
-				local corners = self:GetCornerBoxLines(boxPos.X, boxPos.Y, boxSize.X, boxSize.Y)
-				for i, line in pairs(d.CornerBox) do
-					local corner = corners[i]
-					if corner then
-						line.From = Vector2.new(corner[1], corner[2])
-						line.To = Vector2.new(corner[3], corner[4])
-						line.Color = displayColor
-						line.Transparency = 1
-						line.Visible = true
+				if self.Settings.CornerBox then
+					local corners = self:GetCornerBoxLines(minX, minY, boxWidth, boxHeight)
+					for i = 1, 8 do
+						local line = d.CornerBox[i]
+						local corner = corners[i]
+						if line and corner then
+							line.From = Vector2.new(corner[1], corner[2])
+							line.To = Vector2.new(corner[3], corner[4])
+							line.Color = displayColor
+							line.Transparency = 1
+							line.Visible = true
+						end
+					end
+				else
+					for _, line in pairs(d.CornerBox) do
+						line.Visible = false
 					end
 				end
-			else
-				for _, line in pairs(d.CornerBox) do
-					line.Visible = false
+
+				if self.Settings.Name then
+					d.Name.Position = Vector2.new(minX + boxWidth / 2, minY - 14)
+					d.Name.Text = player.Name
+					d.Name.Color = displayColor
+					d.Name.Visible = true
+				else
+					d.Name.Visible = false
 				end
-			end
 
-			if self.Settings.Name then
-				d.Name.Position = Vector2.new(boxPos.X + boxSize.X / 2, boxPos.Y - 14)
-				d.Name.Text = player.Name
-				d.Name.Color = displayColor
-				d.Name.Visible = true
-			else
-				d.Name.Visible = false
-			end
-
-			if self.Settings.Distance then
-				d.Distance.Position = Vector2.new(boxPos.X + boxSize.X / 2, boxPos.Y + boxSize.Y + 2)
-				d.Distance.Text = tostring(math.floor(dist)) .. " studs"
-				d.Distance.Color = displayColor
-				d.Distance.Visible = true
-			else
-				d.Distance.Visible = false
-			end
-
-			if self.Settings.Health then
-				local hum = char:FindFirstChild("Humanoid")
-				local healthStr = "?"
-				local healthPct = 1
-				if hum then
-					healthStr = tostring(math.floor(hum.Health)) .. "/" .. tostring(math.floor(hum.MaxHealth))
-					healthPct = hum.Health / hum.MaxHealth
+				if self.Settings.Distance and root then
+					local dist = (camera.CFrame.Position - root.Position).Magnitude
+					d.Distance.Position = Vector2.new(minX + boxWidth / 2, maxY + 2)
+					d.Distance.Text = tostring(math.floor(dist)) .. " studs"
+					d.Distance.Color = displayColor
+					d.Distance.Visible = true
+				else
+					d.Distance.Visible = false
 				end
-				d.Health.Position = Vector2.new(boxPos.X + boxSize.X + 4, boxPos.Y + boxSize.Y / 2 - 6)
-				d.Health.Text = healthStr
-				d.Health.Color = Color3.fromRGB(
-					math.floor(255 * (1 - healthPct)),
-					math.floor(255 * healthPct),
-					0
-				)
-				d.Health.Visible = true
 
-				d.HealthBar.Size = Vector2.new(4, boxSize.Y)
-				d.HealthBar.Position = Vector2.new(boxPos.X - 6, boxPos.Y)
-				d.HealthBar.Color = Color3.fromRGB(
-					math.floor(255 * (1 - healthPct)),
-					math.floor(255 * healthPct),
-					0
-				)
-				d.HealthBar.Visible = true
-			else
-				d.Health.Visible = false
-				d.HealthBar.Visible = false
-			end
+				if self.Settings.Health then
+					local hum = char:FindFirstChild("Humanoid")
+					local healthStr = "?"
+					local healthPct = 1
+					if hum then
+						healthStr = tostring(math.floor(hum.Health)) .. "/" .. tostring(math.floor(hum.MaxHealth))
+						healthPct = hum.Health / hum.MaxHealth
+					end
+					d.Health.Position = Vector2.new(maxX + 4, minY + boxHeight / 2 - 6)
+					d.Health.Text = healthStr
+					d.Health.Color = Color3.fromRGB(
+						math.floor(255 * (1 - healthPct)),
+						math.floor(255 * healthPct),
+						0
+					)
+					d.Health.Visible = true
 
-			if self.Settings.Tracers then
-				local screenSize = camera.ViewportSize
-				d.Tracer.From = Vector2.new(screenSize.X / 2, screenSize.Y)
-				d.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
-				d.Tracer.Color = displayColor
-				d.Tracer.Transparency = 1
-				d.Tracer.Visible = true
-			else
-				d.Tracer.Visible = false
-			end
+					d.HealthBar.Size = Vector2.new(4, boxHeight)
+					d.HealthBar.Position = Vector2.new(minX - 6, minY)
+					d.HealthBar.Color = Color3.fromRGB(
+						math.floor(255 * (1 - healthPct)),
+						math.floor(255 * healthPct),
+						0
+					)
+					d.HealthBar.Visible = true
+				else
+					d.Health.Visible = false
+					d.HealthBar.Visible = false
+				end
 
-			if self.Settings.HeadDot then
-				local headScreen = self:IsOnScreen(head.Position)
-				d.HeadDot.Position = Vector2.new(headScreen.X, headScreen.Y)
-				d.HeadDot.Color = displayColor
-				d.HeadDot.Visible = true
-			else
-				d.HeadDot.Visible = false
-			end
+				if self.Settings.Tracers and root then
+					local rootVec, rootOnScreen = camera:WorldToViewportPoint(root.Position)
+					local screenSize = camera.ViewportSize
+					d.Tracer.From = Vector2.new(screenSize.X / 2, screenSize.Y)
+					d.Tracer.To = Vector2.new(rootVec.X, rootVec.Y)
+					d.Tracer.Color = displayColor
+					d.Tracer.Transparency = 1
+					d.Tracer.Visible = true
+				else
+					d.Tracer.Visible = false
+				end
 
-			if self.Settings.Skeleton then
-				local isR6 = char:FindFirstChild("Torso") ~= nil
-				local bones = isR6 and SkeletonBonesR6 or SkeletonBones
-				for i, bonePair in pairs(bones) do
-					local part1 = char:FindFirstChild(bonePair[1])
-					local part2 = char:FindFirstChild(bonePair[2])
-					if part1 and part2 then
-						local p1, onScreen1 = self:IsOnScreen(part1.Position)
-						local p2, onScreen2 = self:IsOnScreen(part2.Position)
-						if onScreen1 and onScreen2 and d.Skeleton[i] then
-							d.Skeleton[i].From = Vector2.new(p1.X, p1.Y)
-							d.Skeleton[i].To = Vector2.new(p2.X, p2.Y)
-							d.Skeleton[i].Color = displayColor
-							d.Skeleton[i].Transparency = 1
-							d.Skeleton[i].Visible = true
+				if self.Settings.HeadDot and head then
+					local headVec, headOnScreen = camera:WorldToViewportPoint(head.Position)
+					d.HeadDot.Position = Vector2.new(headVec.X, headVec.Y)
+					d.HeadDot.Color = displayColor
+					d.HeadDot.Visible = true
+				else
+					d.HeadDot.Visible = false
+				end
+
+				if self.Settings.Skeleton then
+					local isR6 = char:FindFirstChild("Torso") ~= nil
+					local bones = isR6 and SkeletonBonesR6 or SkeletonBones
+					for i, bonePair in pairs(bones) do
+						local part1 = char:FindFirstChild(bonePair[1])
+						local part2 = char:FindFirstChild(bonePair[2])
+						if part1 and part2 then
+							local p1, onScreen1 = camera:WorldToViewportPoint(part1.Position)
+							local p2, onScreen2 = camera:WorldToViewportPoint(part2.Position)
+							if onScreen1 and onScreen2 and d.Skeleton[i] then
+								d.Skeleton[i].From = Vector2.new(p1.X, p1.Y)
+								d.Skeleton[i].To = Vector2.new(p2.X, p2.Y)
+								d.Skeleton[i].Color = displayColor
+								d.Skeleton[i].Transparency = 1
+								d.Skeleton[i].Visible = true
+							elseif d.Skeleton[i] then
+								d.Skeleton[i].Visible = false
+							end
 						elseif d.Skeleton[i] then
 							d.Skeleton[i].Visible = false
 						end
-					elseif d.Skeleton[i] then
-						d.Skeleton[i].Visible = false
+					end
+				else
+					for _, line in pairs(d.Skeleton) do
+						line.Visible = false
 					end
 				end
-			else
-				for _, line in pairs(d.Skeleton) do
-					line.Visible = false
-				end
-			end
 
-			if self.Settings.Chams then
-				if not d.Chams or not d.Chams.Parent then
-					local highlight = Instance.new("Highlight")
-					highlight.Adornee = char
-					highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-					highlight.FillColor = displayColor
-					highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-					highlight.FillTransparency = 0.5
-					highlight.Parent = Services.CoreGui
-					d.Chams = highlight
-					table.insert(self.HighlightInstances, highlight)
-				else
-					d.Chams.Adornee = char
+				if self.Settings.Chams then
+					if not d.Chams or not d.Chams.Parent then
+						local highlight = Instance.new("Highlight")
+						highlight.Adornee = char
+						highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+						highlight.FillColor = displayColor
+						highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+						highlight.FillTransparency = 0.5
+						highlight.Parent = Services.CoreGui
+						d.Chams = highlight
+						table.insert(self.HighlightInstances, highlight)
+					else
+						d.Chams.Adornee = char
+					end
+				elseif d.Chams then
+					Utilities.CleanupInstance(d.Chams)
+					d.Chams = nil
 				end
-			elseif d.Chams then
-				Utilities.CleanupInstance(d.Chams)
-				d.Chams = nil
-			end
-		until true
+			until true
 		end
 	end
 
