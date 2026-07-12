@@ -231,39 +231,40 @@ return function(env)
 		if not camera then return end
 
 		for _, player in pairs(Services.Players:GetPlayers()) do
-			if player == Services.LocalPlayer then continue end
+			repeat
+				if player == Services.LocalPlayer then break end
 
-			local char = player.Character
-			if not char then
-				if self.PlayerDrawings[player] then
-					self:HidePlayerDrawings(player)
+				local char = player.Character
+				if not char then
+					if self.PlayerDrawings[player] then
+						self:HidePlayerDrawings(player)
+					end
+					break
 				end
-				continue
-			end
 
-			local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-			local head = char:FindFirstChild("Head")
-			if not root or not head then
-				if self.PlayerDrawings[player] then
-					self:HidePlayerDrawings(player)
+				local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+				local head = char:FindFirstChild("Head")
+				if not root or not head then
+					if self.PlayerDrawings[player] then
+						self:HidePlayerDrawings(player)
+					end
+					break
 				end
-				continue
-			end
 
-			local color = self:GetPlayerColor(player)
+				local color = self:GetPlayerColor(player)
 
-			local headPos, headOnScreen = self:IsOnScreen(head.Position)
-			local rootPos, rootOnScreen = self:IsOnScreen(root.Position)
-			if not headOnScreen and not rootOnScreen then
-				if self.PlayerDrawings[player] then
-					self:HidePlayerDrawings(player)
+				local headPos, headOnScreen = self:IsOnScreen(head.Position)
+				local rootPos, rootOnScreen = self:IsOnScreen(root.Position)
+				if not headOnScreen and not rootOnScreen then
+					if self.PlayerDrawings[player] then
+						self:HidePlayerDrawings(player)
+					end
+					break
 				end
-				continue
-			end
 
-			local dist = (camera.CFrame.Position - root.Position).Magnitude
-			local d = self.PlayerDrawings[player]
-			if not d then continue end
+				local dist = (camera.CFrame.Position - root.Position).Magnitude
+				local d = self.PlayerDrawings[player]
+				if not d then break end
 
 			-- Calculate box using actual projected body bounds (head to feet)
 			local screenHeight = (rootPos.Y - headPos.Y) * 2
@@ -420,6 +421,7 @@ return function(env)
 				Utilities.CleanupInstance(d.Chams)
 				d.Chams = nil
 			end
+		until true
 		end
 	end
 
