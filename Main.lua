@@ -20,7 +20,6 @@ do
 	local originalRaw = Notifications.RawNotify
 
 	Notifications.Notify = function(title, content, duration, image)
-		if not Notifications._enabled and Notifications._enabled ~= nil then return end
 		local key = title:lower()
 		local now = tick()
 		if spamCooldown[key] and now - spamCooldown[key] < COOLDOWN then return end
@@ -34,11 +33,8 @@ do
 	end
 
 	Notifications.RawNotify = function(data)
-		if not Notifications._enabled and Notifications._enabled ~= nil then return end
 		originalRaw(data)
 	end
-
-	Notifications._enabled = true
 end
 
 local env = {
