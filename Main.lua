@@ -208,6 +208,34 @@ local FlightSpeedSlider = MainTab:CreateSlider({
 	end,
 })
 
+local FlightVertSlider = MainTab:CreateSlider({
+	Name = "Vertical Speed",
+	Range = {10, 200},
+	Increment = 5,
+	Suffix = " studs/s",
+	CurrentValue = 50,
+	Flag = "FlightVertSpeed",
+	Callback = function(Value) Flight.VerticalSpeed = Value end,
+})
+
+local FlightAccelSlider = MainTab:CreateSlider({
+	Name = "Flight Acceleration",
+	Range = {5, 100},
+	Increment = 5,
+	Suffix = "%",
+	CurrentValue = 15,
+	Flag = "FlightAcceleration",
+	Callback = function(Value) Flight.Acceleration = Value / 100 end,
+})
+
+local FlightModeDropdown = MainTab:CreateDropdown({
+	Name = "Flight Mode",
+	Options = {"Smooth", "Instant", "Hover"},
+	CurrentOption = "Smooth",
+	Flag = "FlightMode",
+	Callback = function(Value) Flight.Mode = Value end,
+})
+
 local AirJumpToggle = MainTab:CreateToggle({
 	Name = "Air Jump",
 	CurrentValue = false,

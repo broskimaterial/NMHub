@@ -9,6 +9,9 @@ return function(env)
 		FlightVelocity = nil,
 		FlightGyro = nil,
 		Speed = 50,
+		VerticalSpeed = 50,
+		Acceleration = 0.15,
+		Mode = "Smooth",
 		SmoothTarget = Vector3.zero,
 	}
 
@@ -50,6 +53,8 @@ return function(env)
 
 			local moveDir = Vector3.zero
 			local cameraCFrame = camera.CFrame
+			local speed = Flight.Speed
+			local vertSpeed = Flight.VerticalSpeed
 
 			if Services.UserInputService:IsKeyDown(Enum.KeyCode.W) then
 				moveDir = moveDir + cameraCFrame.LookVector
@@ -64,19 +69,23 @@ return function(env)
 				moveDir = moveDir + cameraCFrame.RightVector
 			end
 			if Services.UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-				moveDir = moveDir + Vector3.new(0, 1, 0)
+				moveDir = moveDir + Vector3.new(0, 1, 0) * (vertSpeed / speed)
 			end
 			if Services.UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-				moveDir = moveDir - Vector3.new(0, 1, 0)
+				moveDir = moveDir - Vector3.new(0, 1, 0) * (vertSpeed / speed)
 			end
 
 			if moveDir.Magnitude > 0 then
-				moveDir = moveDir.Unit * Flight.Speed
+				moveDir = moveDir.Unit * speed
 			end
 
-			Flight.SmoothTarget = Flight.SmoothTarget:Lerp(moveDir, 0.15)
-			if Flight.SmoothTarget.Magnitude < 0.5 then
-				Flight.SmoothTarget = Vector3.zero
+			if Flight.Mode == "Instant" then
+				Flight.SmoothTarget = moveDir
+			else
+				Flight.SmoothTarget = Flight.SmoothTarget:Lerp(moveDir, Flight.Acceleration)
+				if Flight.SmoothTarget.Magnitude < 0.5 then
+					Flight.SmoothTarget = Vector3.zero
+				end
 			end
 
 			if Flight.FlightVelocity then
