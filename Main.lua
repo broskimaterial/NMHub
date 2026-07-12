@@ -8,6 +8,39 @@ local Notifications = loadstring(game:HttpGet(BASE_URL .. "/Notifications.lua"))
 
 local Logger = loadstring(game:HttpGet(BASE_URL .. "/Logger.lua"))()()
 
+--------------------------------------------------------------------
+-- Notification Queue (FIFO, max 3 visible, spam prevention)
+--------------------------------------------------------------------
+do
+	local queue = {}
+	local spamCooldown = {}
+	local MAX_VISIBLE = 3
+	local COOLDOWN = 3
+	local originalNotify = Notifications.Notify
+	local originalRaw = Notifications.RawNotify
+
+	Notifications.Notify = function(title, content, duration, image)
+		if not Notifications._enabled and Notifications._enabled ~= nil then return end
+		local key = title:lower()
+		local now = tick()
+		if spamCooldown[key] and now - spamCooldown[key] < COOLDOWN then return end
+		spamCooldown[key] = now
+
+		table.insert(queue, { Title = title, Content = content, Duration = duration or 4, Image = image or "info" })
+		if #queue > MAX_VISIBLE then table.remove(queue, 1) end
+		for _, entry in ipairs(queue) do
+			originalNotify(entry.Title, entry.Content, entry.Duration, entry.Image)
+		end
+	end
+
+	Notifications.RawNotify = function(data)
+		if not Notifications._enabled and Notifications._enabled ~= nil then return end
+		originalRaw(data)
+	end
+
+	Notifications._enabled = true
+end
+
 local env = {
 	BASE_URL = BASE_URL,
 	Services = Services,
@@ -315,7 +348,13 @@ local EspTextOutlineToggle = VisualsTab:CreateToggle({
 })
 
 -- Keybinds Tab
-local KeybindsSection = KeybindsTab:CreateSection("Feature Keybinds")
+local KeybindsSection = KeybindsTab:CreateSection("Keybind Summary")
+KeybindsTab:CreateLabel("N  — NoClip Toggle", "keyboard")
+KeybindsTab:CreateLabel("F  — Flight Toggle", "keyboard")
+KeybindsTab:CreateLabel("J  — Air Jump Toggle", "keyboard")
+KeybindsTab:CreateLabel("P  — ESP Toggle", "keyboard")
+
+local KeybindsRemapSection = KeybindsTab:CreateSection("Remap Keybinds")
 
 local NoClipKeybind = KeybindsTab:CreateKeybind({
 	Name = "NoClip Toggle",
@@ -435,6 +474,20 @@ local ThemeDropdown = SettingsTab:CreateDropdown({
 	Callback = function(Value)
 		ThemeManager.SetTheme(Value)
 	end,
+})
+
+local NavSection = SettingsTab:CreateSection("Quick Navigation")
+SettingsTab:CreateButton({
+	Name = "Open Main Tab",
+	Callback = function() Window:SelectTab(1) end,
+})
+SettingsTab:CreateButton({
+	Name = "Open Visuals Tab",
+	Callback = function() Window:SelectTab(2) end,
+})
+SettingsTab:CreateButton({
+	Name = "Open Keybinds Tab",
+	Callback = function() Window:SelectTab(3) end,
 })
 
 local DiagnosticsSection = SettingsTab:CreateSection("Diagnostics")
