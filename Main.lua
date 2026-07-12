@@ -54,6 +54,7 @@ local NoClip = loadstring(game:HttpGet(BASE_URL .. "/Modules/NoClip.lua"))()(env
 local Flight = loadstring(game:HttpGet(BASE_URL .. "/Modules/Flight.lua"))()(env)
 local InfiniteJump = loadstring(game:HttpGet(BASE_URL .. "/Modules/InfiniteJump.lua"))()(env)
 local Visuals = loadstring(game:HttpGet(BASE_URL .. "/Modules/Visuals.lua"))()(env)
+local HitboxExpander = loadstring(game:HttpGet(BASE_URL .. "/Modules/HitboxExpander.lua"))()(env)
 
 --------------------------------------------------------------------
 -- Version Check
@@ -121,6 +122,7 @@ local function DestroyHub()
 	NoClip:Cleanup()
 	Flight:Cleanup()
 	InfiniteJump:Cleanup()
+	HitboxExpander:Cleanup()
 	Visuals:Cleanup()
 
 	PluginManager.CleanupAll()
@@ -172,6 +174,7 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab("Main", "home")
 local VisualsTab = Window:CreateTab("Visuals", "eye")
+local CombatTab = Window:CreateTab("Combat", "crosshair")
 local KeybindsTab = Window:CreateTab("Keybinds", "keyboard")
 local SettingsTab = Window:CreateTab("Settings", "settings")
 
@@ -410,11 +413,52 @@ local DistanceFadeToggle = VisualsTab:CreateToggle({
 	Callback = function(Value) Visuals.Settings.DistanceFade = Value end,
 })
 
+-- Combat Tab
+local HitboxSection = CombatTab:CreateSection("Hitbox Expander")
+
+local HitboxToggle = CombatTab:CreateToggle({
+	Name = "Enable Hitbox Expander",
+	CurrentValue = false,
+	Flag = "HitboxExpanderToggle",
+	Callback = function(Value)
+		if Value then HitboxExpander:Enable() else HitboxExpander:Disable() end
+	end,
+})
+
+local HitboxSizeSlider = CombatTab:CreateSlider({
+	Name = "Hitbox Size",
+	Range = {2, 20},
+	Increment = 1,
+	Suffix = "x",
+	CurrentValue = 2,
+	Flag = "HitboxExpanderSize",
+	Callback = function(Value) HitboxExpander:SetSize(Value) end,
+})
+
+local HitboxTransparencySlider = CombatTab:CreateSlider({
+	Name = "Transparency",
+	Range = {0, 10},
+	Increment = 1,
+	Suffix = "/10",
+	CurrentValue = 0,
+	Flag = "HitboxExpanderTransparency",
+	Callback = function(Value) HitboxExpander:SetTransparency(Value / 10) end,
+})
+
+local HitboxTargetDropdown = CombatTab:CreateDropdown({
+	Name = "Target Part",
+	Options = {"HumanoidRootPart", "Head", "All"},
+	CurrentOption = "HumanoidRootPart",
+	Flag = "HitboxExpanderTarget",
+	Callback = function(Value) HitboxExpander:SetTargetPart(Value) end,
+})
+
 -- Keybinds Tab
 local KeybindsSection = KeybindsTab:CreateSection("Keybind Summary")
 KeybindsTab:CreateLabel("N  — NoClip Toggle", "keyboard")
 KeybindsTab:CreateLabel("F  — Flight Toggle", "keyboard")
 KeybindsTab:CreateLabel("J  — Air Jump Toggle", "keyboard")
+KeybindsTab:CreateLabel("K  — Hitbox Toggle", "keyboard")
 KeybindsTab:CreateLabel("P  — ESP Toggle", "keyboard")
 
 local KeybindsRemapSection = KeybindsTab:CreateSection("Remap Keybinds")
@@ -479,6 +523,22 @@ local EspKeybind = KeybindsTab:CreateKeybind({
 		else
 			Visuals:Enable()
 			EspToggle:Set(true)
+		end
+	end,
+})
+
+local HitboxKeybind = KeybindsTab:CreateKeybind({
+	Name = "Hitbox Toggle",
+	CurrentKeybind = "K",
+	HoldToInteract = false,
+	Flag = "HitboxKeybind",
+	Callback = function()
+		if HitboxExpander.Enabled then
+			HitboxExpander:Disable()
+			HitboxToggle:Set(false)
+		else
+			HitboxExpander:Enable()
+			HitboxToggle:Set(true)
 		end
 	end,
 })
@@ -595,8 +655,12 @@ SettingsTab:CreateButton({
 	Callback = function() Window:SelectTab(2) end,
 })
 SettingsTab:CreateButton({
-	Name = "Open Keybinds Tab",
+	Name = "Open Combat Tab",
 	Callback = function() Window:SelectTab(3) end,
+})
+SettingsTab:CreateButton({
+	Name = "Open Keybinds Tab",
+	Callback = function() Window:SelectTab(4) end,
 })
 
 local DiagnosticsSection = SettingsTab:CreateSection("Diagnostics")
@@ -624,10 +688,12 @@ env.Hub = {
 	NoClip = NoClip,
 	Flight = Flight,
 	InfiniteJump = InfiniteJump,
+	HitboxExpander = HitboxExpander,
 	Visuals = Visuals,
 }
 env.Hub.MainTab = MainTab
 env.Hub.VisualsTab = VisualsTab
+env.Hub.CombatTab = CombatTab
 env.Hub.KeybindsTab = KeybindsTab
 env.Hub.SettingsTab = SettingsTab
 
@@ -648,11 +714,11 @@ end
 
 Rayfield:LoadConfiguration()
 
-Notifications.Notify("NMHub Loaded", "Script hub initialized successfully.", 5, "shield")
-Notifications.Notify("Script Initialized", "All modules loaded and ready", 3, "check-circle")
-Notifications.RawNotify({
-	Title = "Welcome to NMHub",
-	Content = "NoClip: N | Flight: F | Air Jump: J | ESP: P",
-	Duration = 8,
-	Image = "info",
-})
+	Notifications.Notify("NMHub Loaded", "Script hub initialized successfully.", 5, "shield")
+	Notifications.Notify("Script Initialized", "All modules loaded and ready", 3, "check-circle")
+	Notifications.RawNotify({
+		Title = "Welcome to NMHub",
+		Content = "NoClip: N | Flight: F | Air Jump: J | Hitbox: K | ESP: P",
+		Duration = 8,
+		Image = "info",
+	})
