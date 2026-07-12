@@ -48,6 +48,7 @@ local env = {
 local Diagnostics = loadstring(game:HttpGet(BASE_URL .. "/Diagnostics.lua"))()(env)
 local ThemeManager = loadstring(game:HttpGet(BASE_URL .. "/ThemeManager.lua"))()({ Rayfield = Rayfield })
 local PluginManager = loadstring(game:HttpGet(BASE_URL .. "/PluginManager.lua"))()(env)
+local Profiles = loadstring(game:HttpGet(BASE_URL .. "/Profiles.lua"))()(env)
 
 local NoClip = loadstring(game:HttpGet(BASE_URL .. "/Modules/NoClip.lua"))()(env)
 local Flight = loadstring(game:HttpGet(BASE_URL .. "/Modules/Flight.lua"))()(env)
@@ -497,6 +498,52 @@ local NotificationsToggle = SettingsTab:CreateToggle({
 			Duration = 2,
 			Image = Value and "bell" or "bell-off",
 		})
+	end,
+})
+
+local ProfileSection = SettingsTab:CreateSection("Profiles")
+
+local ProfileDropdown = SettingsTab:CreateDropdown({
+	Name = "Active Profile",
+	Options = Profiles.GetProfiles(),
+	CurrentOption = Profiles.GetCurrent(),
+	Flag = "ActiveProfile",
+	Callback = function(Value)
+		if Value ~= Profiles.GetCurrent() then
+			Profiles.Switch(Value)
+			Profiles.Save()
+			Notifications.Notify("Profile Switched", "Reload script to apply profile: " .. Value, 5, "refresh-cw")
+		end
+	end,
+})
+
+local NewProfileInput = SettingsTab:CreateInput({
+	Name = "New Profile Name",
+	PlaceholderText = "Enter name...",
+	Flag = "NewProfileName",
+	Callback = function(Value)
+		if Value and #Value > 0 then
+			if Profiles.Create(Value) then
+				ProfileDropdown:SetOptions(Profiles.GetProfiles())
+				ProfileDropdown:Set(Value)
+				Notifications.Notify("Profile Created", "Profile '" .. Value .. "' created", 3, "check-circle")
+			end
+		end
+	end,
+})
+
+local DeleteProfileButton = SettingsTab:CreateButton({
+	Name = "Delete Current Profile",
+	Callback = function()
+		local name = Profiles.GetCurrent()
+		if name == "Default" then
+			Notifications.Notify("Cannot Delete", "Default profile cannot be deleted", 3, "alert-triangle")
+			return
+		end
+		Profiles.Delete(name)
+		ProfileDropdown:SetOptions(Profiles.GetProfiles())
+		ProfileDropdown:Set(Profiles.GetCurrent())
+		Notifications.Notify("Profile Deleted", "Profile '" .. name .. "' deleted", 3, "trash-2")
 	end,
 })
 
