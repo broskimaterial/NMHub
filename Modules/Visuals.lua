@@ -107,6 +107,11 @@ return function(env)
 			RefreshRate = 1,
 			Outline = false,
 			TextOutline = true,
+			Transparency = 1,
+			TextSize = 14,
+			TracerOrigin = "Bottom",
+			DistanceFade = false,
+			FriendColor = nil,
 		},
 	}
 
@@ -256,6 +261,9 @@ return function(env)
 	end
 
 	function ESP:GetPlayerColor(player)
+		if self.Settings.FriendColor and player:IsFriendsWith(Services.LocalPlayer.UserId) then
+			return self.Settings.FriendColor
+		end
 		if player.Team and player.TeamColor then
 			return player.TeamColor.Color
 		end
@@ -292,6 +300,10 @@ return function(env)
 		local maxDist = self.Settings.MaxDistance
 		local useOutline = self.Settings.Outline
 		local useTextOutline = self.Settings.TextOutline
+		local baseTransparency = self.Settings.Transparency
+		local textSize = self.Settings.TextSize
+		local useDistanceFade = self.Settings.DistanceFade
+		local tracerOrigin = self.Settings.TracerOrigin
 
 		for _, player in pairs(Services.Players:GetPlayers()) do
 			repeat
@@ -330,7 +342,7 @@ return function(env)
 					d.Box.Size = Vector2.new(boxWidth, boxHeight)
 					d.Box.Position = Vector2.new(minX, minY)
 					d.Box.Color = displayColor
-					d.Box.Transparency = 1
+					d.Box.Transparency = baseTransparency
 					d.Box.Thickness = thickness
 					d.Box.Filled = useOutline
 					d.Box.Visible = true
@@ -350,7 +362,7 @@ return function(env)
 							end
 							line.Color = displayColor
 							line.Thickness = thickness
-							line.Transparency = 1
+							line.Transparency = baseTransparency
 							line.Visible = self.Settings.CornerBox
 						end
 					end
@@ -364,6 +376,7 @@ return function(env)
 					d.Name.Position = Vector2.new(minX + boxWidth / 2, minY - 14)
 					d.Name.Text = player.Name
 					d.Name.Color = displayColor
+					d.Name.Size = textSize
 					d.Name.Outline = useTextOutline
 					d.Name.Visible = true
 				else
@@ -378,6 +391,7 @@ return function(env)
 						d.Distance.Position = Vector2.new(minX + boxWidth / 2, maxY + 2)
 						d.Distance.Text = tostring(math.floor(dist)) .. " studs"
 						d.Distance.Color = displayColor
+						d.Distance.Size = textSize
 						d.Distance.Outline = useTextOutline
 						d.Distance.Visible = true
 					end
@@ -395,6 +409,7 @@ return function(env)
 					end
 					d.Health.Position = Vector2.new(maxX + 4, minY + boxHeight / 2 - 6)
 					d.Health.Text = healthStr
+					d.Health.Size = textSize
 					d.Health.Color = Color3.fromRGB(
 						math.floor(255 * (1 - healthPct)),
 						math.floor(255 * healthPct),
@@ -419,11 +434,18 @@ return function(env)
 				if self.Settings.Tracers and root then
 					local rootVec, rootOnScreen = camera:WorldToViewportPoint(root.Position)
 					local screenSize = camera.ViewportSize
-					d.Tracer.From = Vector2.new(screenSize.X / 2, screenSize.Y)
+					if tracerOrigin == "Crosshair" then
+						d.Tracer.From = Vector2.new(screenSize.X / 2, screenSize.Y / 2)
+					elseif tracerOrigin == "Mouse" then
+						local mousePos = Services.UserInputService:GetMouseLocation()
+						d.Tracer.From = Vector2.new(mousePos.X, mousePos.Y)
+					else
+						d.Tracer.From = Vector2.new(screenSize.X / 2, screenSize.Y)
+					end
 					d.Tracer.To = Vector2.new(rootVec.X, rootVec.Y)
 					d.Tracer.Color = displayColor
 					d.Tracer.Thickness = thickness
-					d.Tracer.Transparency = 1
+					d.Tracer.Transparency = baseTransparency
 					d.Tracer.Visible = true
 				else
 					d.Tracer.Visible = false
@@ -452,7 +474,7 @@ return function(env)
 								d.Skeleton[i].To = Vector2.new(p2.X, p2.Y)
 								d.Skeleton[i].Color = displayColor
 								d.Skeleton[i].Thickness = thickness
-								d.Skeleton[i].Transparency = 1
+								d.Skeleton[i].Transparency = baseTransparency
 								d.Skeleton[i].Visible = true
 							elseif d.Skeleton[i] then
 								d.Skeleton[i].Visible = false

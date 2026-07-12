@@ -343,6 +343,44 @@ local EspTextOutlineToggle = VisualsTab:CreateToggle({
 	Callback = function(Value) Visuals.Settings.TextOutline = Value end,
 })
 
+VisualsTab:CreateDivider()
+local EspAestheticSection = VisualsTab:CreateSection("Aesthetics")
+
+local TransparencySlider = VisualsTab:CreateSlider({
+	Name = "ESP Transparency",
+	Range = {0, 10},
+	Increment = 1,
+	Suffix = "/10",
+	CurrentValue = 10,
+	Flag = "EspTransparency",
+	Callback = function(Value) Visuals.Settings.Transparency = Value / 10 end,
+})
+
+local TextSizeSlider = VisualsTab:CreateSlider({
+	Name = "ESP Text Size",
+	Range = {10, 30},
+	Increment = 1,
+	Suffix = "px",
+	CurrentValue = 14,
+	Flag = "EspTextSize",
+	Callback = function(Value) Visuals.Settings.TextSize = Value end,
+})
+
+local TracerOriginDropdown = VisualsTab:CreateDropdown({
+	Name = "Tracer Origin",
+	Options = {"Bottom", "Crosshair", "Mouse"},
+	CurrentOption = "Bottom",
+	Flag = "EspTracerOrigin",
+	Callback = function(Value) Visuals.Settings.TracerOrigin = Value end,
+})
+
+local DistanceFadeToggle = VisualsTab:CreateToggle({
+	Name = "Distance Fade",
+	CurrentValue = false,
+	Flag = "EspDistanceFade",
+	Callback = function(Value) Visuals.Settings.DistanceFade = Value end,
+})
+
 -- Keybinds Tab
 local KeybindsSection = KeybindsTab:CreateSection("Keybind Summary")
 KeybindsTab:CreateLabel("N  — NoClip Toggle", "keyboard")
