@@ -1,0 +1,27 @@
+# Roblox
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+*.rblx
+*.rbx
+
+# Lua
+*.lc
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+*.sublime-project
+*.sublime-workspace
+.vscode/
+
+# Logs
+*.log
+
+# Config
+local/
