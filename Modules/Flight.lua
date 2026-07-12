@@ -9,6 +9,7 @@ return function(env)
 		FlightVelocity = nil,
 		FlightGyro = nil,
 		Speed = 50,
+		SmoothTarget = Vector3.zero,
 	}
 
 	function Flight:Enable()
@@ -38,7 +39,7 @@ return function(env)
 		self.FlightGyro.Parent = rootPart
 		table.insert(Utilities.Instances, self.FlightGyro)
 
-		self.Connection = Services.RunService.RenderStepped:Connect(function()
+		self.Connection = Services.RunService.RenderStepped:Connect(function(dt)
 			if not Flight.Enabled then return end
 			local char = Services.LocalPlayer.Character
 			local rp = char and char:FindFirstChild("HumanoidRootPart")
@@ -51,30 +52,35 @@ return function(env)
 			local cameraCFrame = camera.CFrame
 
 			if Services.UserInputService:IsKeyDown(Enum.KeyCode.W) then
-				moveDir += cameraCFrame.LookVector
+				moveDir = moveDir + cameraCFrame.LookVector
 			end
 			if Services.UserInputService:IsKeyDown(Enum.KeyCode.S) then
-				moveDir -= cameraCFrame.LookVector
+				moveDir = moveDir - cameraCFrame.LookVector
 			end
 			if Services.UserInputService:IsKeyDown(Enum.KeyCode.A) then
-				moveDir -= cameraCFrame.RightVector
+				moveDir = moveDir - cameraCFrame.RightVector
 			end
 			if Services.UserInputService:IsKeyDown(Enum.KeyCode.D) then
-				moveDir += cameraCFrame.RightVector
+				moveDir = moveDir + cameraCFrame.RightVector
 			end
 			if Services.UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-				moveDir += Vector3.new(0, 1, 0)
+				moveDir = moveDir + Vector3.new(0, 1, 0)
 			end
 			if Services.UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-				moveDir -= Vector3.new(0, 1, 0)
+				moveDir = moveDir - Vector3.new(0, 1, 0)
 			end
 
 			if moveDir.Magnitude > 0 then
 				moveDir = moveDir.Unit * Flight.Speed
 			end
 
+			Flight.SmoothTarget = Flight.SmoothTarget:Lerp(moveDir, 0.15)
+			if Flight.SmoothTarget.Magnitude < 0.5 then
+				Flight.SmoothTarget = Vector3.zero
+			end
+
 			if Flight.FlightVelocity then
-				Flight.FlightVelocity.Velocity = moveDir
+				Flight.FlightVelocity.Velocity = Flight.SmoothTarget
 			end
 			if Flight.FlightGyro then
 				Flight.FlightGyro.CFrame = cameraCFrame

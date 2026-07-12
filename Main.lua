@@ -17,6 +17,17 @@ local InfiniteJump = loadstring(game:HttpGet(BASE_URL .. "/Modules/InfiniteJump.
 local Visuals = loadstring(game:HttpGet(BASE_URL .. "/Modules/Visuals.lua"))()(env)
 
 --------------------------------------------------------------------
+-- Version Check
+--------------------------------------------------------------------
+local VersionInfo = loadstring(game:HttpGet(BASE_URL .. "/Version.lua"))()
+local CURRENT_VERSION = (VersionInfo and VersionInfo.Version) or "0.0.0"
+
+local LATEST_VERSION
+local versionSuccess = pcall(function()
+	LATEST_VERSION = game:HttpGet(BASE_URL .. "/Version.txt"):gsub("%s+", "")
+end)
+
+--------------------------------------------------------------------
 -- Character Handling
 --------------------------------------------------------------------
 local Character = nil
@@ -51,6 +62,15 @@ end
 
 local CharacterAddedConn = Services.LocalPlayer.CharacterAdded:Connect(OnCharacterAdded)
 table.insert(Utilities.Connections, CharacterAddedConn)
+
+--------------------------------------------------------------------
+-- Update Notification
+--------------------------------------------------------------------
+task.spawn(function()
+	if versionSuccess and LATEST_VERSION and LATEST_VERSION ~= CURRENT_VERSION then
+		Notifications.Notify("NMHub Update Available", "v" .. LATEST_VERSION .. " available (current: v" .. CURRENT_VERSION .. ")", 10, "download")
+	end
+end)
 
 --------------------------------------------------------------------
 -- Destroy Hub
@@ -228,6 +248,53 @@ local ChamsToggle = VisualsTab:CreateToggle({
 	Callback = function(Value) Visuals.Settings.Chams = Value end,
 })
 
+VisualsTab:CreateDivider()
+local VisualSettingsSection = VisualsTab:CreateSection("Visual Settings")
+
+local LineThicknessSlider = VisualsTab:CreateSlider({
+	Name = "ESP Line Thickness",
+	Range = {1, 5},
+	Increment = 1,
+	Suffix = "px",
+	CurrentValue = 1,
+	Flag = "EspLineThickness",
+	Callback = function(Value) Visuals.Settings.LineThickness = Value end,
+})
+
+local MaxDistanceSlider = VisualsTab:CreateSlider({
+	Name = "Max ESP Distance",
+	Range = {100, 5000},
+	Increment = 100,
+	Suffix = " studs",
+	CurrentValue = 5000,
+	Flag = "EspMaxDistance",
+	Callback = function(Value) Visuals.Settings.MaxDistance = Value end,
+})
+
+local RefreshRateSlider = VisualsTab:CreateSlider({
+	Name = "ESP Refresh Rate",
+	Range = {1, 10},
+	Increment = 1,
+	Suffix = " frames",
+	CurrentValue = 1,
+	Flag = "EspRefreshRate",
+	Callback = function(Value) Visuals.Settings.RefreshRate = Value end,
+})
+
+local EspOutlineToggle = VisualsTab:CreateToggle({
+	Name = "Box Outline",
+	CurrentValue = false,
+	Flag = "EspOutlineToggle",
+	Callback = function(Value) Visuals.Settings.Outline = Value end,
+})
+
+local EspTextOutlineToggle = VisualsTab:CreateToggle({
+	Name = "Text Outline",
+	CurrentValue = true,
+	Flag = "EspTextOutlineToggle",
+	Callback = function(Value) Visuals.Settings.TextOutline = Value end,
+})
+
 -- Keybinds Tab
 local KeybindsSection = KeybindsTab:CreateSection("Feature Keybinds")
 
@@ -335,7 +402,7 @@ local DestroyHubButton = SettingsTab:CreateButton({
 })
 
 local InfoSection = SettingsTab:CreateSection("Information")
-SettingsTab:CreateLabel("NMHub v2.0.0", "shield")
+SettingsTab:CreateLabel("NMHub v" .. CURRENT_VERSION, "shield")
 SettingsTab:CreateLabel("Built with Sirius (Rayfield) UI Library", "code")
 SettingsTab:CreateLabel("Features: NoClip, Flight, Air Jump, ESP", "list")
 SettingsTab:CreateLabel("All keybinds are rebindable in Keybinds tab", "keyboard")

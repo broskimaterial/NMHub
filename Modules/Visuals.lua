@@ -91,6 +91,7 @@ return function(env)
 		PlayerRemovingConn = nil,
 		PlayerDrawings = {},
 		HighlightInstances = {},
+		FrameCounter = 0,
 		Settings = {
 			Box = false,
 			CornerBox = false,
@@ -101,6 +102,11 @@ return function(env)
 			Tracers = false,
 			HeadDot = false,
 			Chams = false,
+			LineThickness = 1,
+			MaxDistance = 5000,
+			RefreshRate = 1,
+			Outline = false,
+			TextOutline = true,
 		},
 	}
 
@@ -277,6 +283,16 @@ return function(env)
 		local camera = Services.Workspace.CurrentCamera
 		if not camera then return end
 
+		self.FrameCounter = self.FrameCounter + 1
+		if self.FrameCounter % self.Settings.RefreshRate ~= 0 then
+			return
+		end
+
+		local thickness = self.Settings.LineThickness
+		local maxDist = self.Settings.MaxDistance
+		local useOutline = self.Settings.Outline
+		local useTextOutline = self.Settings.TextOutline
+
 		for _, player in pairs(Services.Players:GetPlayers()) do
 			repeat
 				if player == Services.LocalPlayer then break end
@@ -315,6 +331,8 @@ return function(env)
 					d.Box.Position = Vector2.new(minX, minY)
 					d.Box.Color = displayColor
 					d.Box.Transparency = 1
+					d.Box.Thickness = thickness
+					d.Box.Filled = useOutline
 					d.Box.Visible = true
 				else
 					d.Box.Visible = false
@@ -324,13 +342,16 @@ return function(env)
 					local corners = self:GetCornerBoxLines(minX, minY, boxWidth, boxHeight)
 					for i = 1, 8 do
 						local line = d.CornerBox[i]
-						local corner = corners[i]
-						if line and corner then
-							line.From = Vector2.new(corner[1], corner[2])
-							line.To = Vector2.new(corner[3], corner[4])
+						if line then
+							local corner = corners[i]
+							if corner then
+								line.From = Vector2.new(corner[1], corner[2])
+								line.To = Vector2.new(corner[3], corner[4])
+							end
 							line.Color = displayColor
+							line.Thickness = thickness
 							line.Transparency = 1
-							line.Visible = true
+							line.Visible = self.Settings.CornerBox
 						end
 					end
 				else
@@ -343,6 +364,7 @@ return function(env)
 					d.Name.Position = Vector2.new(minX + boxWidth / 2, minY - 14)
 					d.Name.Text = player.Name
 					d.Name.Color = displayColor
+					d.Name.Outline = useTextOutline
 					d.Name.Visible = true
 				else
 					d.Name.Visible = false
@@ -350,10 +372,15 @@ return function(env)
 
 				if self.Settings.Distance and root then
 					local dist = (camera.CFrame.Position - root.Position).Magnitude
-					d.Distance.Position = Vector2.new(minX + boxWidth / 2, maxY + 2)
-					d.Distance.Text = tostring(math.floor(dist)) .. " studs"
-					d.Distance.Color = displayColor
-					d.Distance.Visible = true
+					if dist > maxDist then
+						d.Distance.Visible = false
+					else
+						d.Distance.Position = Vector2.new(minX + boxWidth / 2, maxY + 2)
+						d.Distance.Text = tostring(math.floor(dist)) .. " studs"
+						d.Distance.Color = displayColor
+						d.Distance.Outline = useTextOutline
+						d.Distance.Visible = true
+					end
 				else
 					d.Distance.Visible = false
 				end
@@ -373,6 +400,7 @@ return function(env)
 						math.floor(255 * healthPct),
 						0
 					)
+					d.Health.Outline = useTextOutline
 					d.Health.Visible = true
 
 					d.HealthBar.Size = Vector2.new(4, boxHeight)
@@ -394,6 +422,7 @@ return function(env)
 					d.Tracer.From = Vector2.new(screenSize.X / 2, screenSize.Y)
 					d.Tracer.To = Vector2.new(rootVec.X, rootVec.Y)
 					d.Tracer.Color = displayColor
+					d.Tracer.Thickness = thickness
 					d.Tracer.Transparency = 1
 					d.Tracer.Visible = true
 				else
@@ -422,6 +451,7 @@ return function(env)
 								d.Skeleton[i].From = Vector2.new(p1.X, p1.Y)
 								d.Skeleton[i].To = Vector2.new(p2.X, p2.Y)
 								d.Skeleton[i].Color = displayColor
+								d.Skeleton[i].Thickness = thickness
 								d.Skeleton[i].Transparency = 1
 								d.Skeleton[i].Visible = true
 							elseif d.Skeleton[i] then
