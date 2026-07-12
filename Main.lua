@@ -612,6 +612,26 @@ task.spawn(function()
 end)
 
 --------------------------------------------------------------------
+-- Hub API (exposed to plugins)
+--------------------------------------------------------------------
+env.Hub = {
+	Services = Services,
+	Utilities = Utilities,
+	Logger = Logger,
+	Notify = Notifications.Notify,
+	Rayfield = Rayfield,
+	Window = Window,
+	NoClip = NoClip,
+	Flight = Flight,
+	InfiniteJump = InfiniteJump,
+	Visuals = Visuals,
+}
+env.Hub.MainTab = MainTab
+env.Hub.VisualsTab = VisualsTab
+env.Hub.KeybindsTab = KeybindsTab
+env.Hub.SettingsTab = SettingsTab
+
+--------------------------------------------------------------------
 -- Initialization
 --------------------------------------------------------------------
 task.spawn(function()
