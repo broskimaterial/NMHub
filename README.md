@@ -44,10 +44,10 @@ A polished, all-in-one Roblox script hub built with the Sirius (Rayfield) UI Lib
 3. Execute.
 
 ### Option 2: GitHub Raw
-Replace `brokimaterial` in `Loader.lua` with your GitHub brokimaterial, then use:
+Replace `broskimaterial` in `Loader.lua` with your GitHub broskimaterial, then use:
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/brokimaterial/NMHub/main/Loader.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/broskimaterial/NMHub/main/Loader.lua"))()
 ```
 
 ---
@@ -55,10 +55,10 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/brokimaterial/NMHub/m
 ## GitHub Loader
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/brokimaterial/NMHub/main/Loader.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/broskimaterial/NMHub/main/Loader.lua"))()
 ```
 
-Replace `brokimaterial` with the repository owner's GitHub brokimaterial.
+Replace `broskimaterial` with the repository owner's GitHub broskimaterial.
 
 ---
 
