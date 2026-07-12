@@ -54,7 +54,6 @@ local NoClip = loadstring(game:HttpGet(BASE_URL .. "/Modules/NoClip.lua"))()(env
 local Flight = loadstring(game:HttpGet(BASE_URL .. "/Modules/Flight.lua"))()(env)
 local InfiniteJump = loadstring(game:HttpGet(BASE_URL .. "/Modules/InfiniteJump.lua"))()(env)
 local Visuals = loadstring(game:HttpGet(BASE_URL .. "/Modules/Visuals.lua"))()(env)
-local Hitbox = loadstring(game:HttpGet(BASE_URL .. "/Modules/Hitbox.lua"))()(env)
 
 --------------------------------------------------------------------
 -- Version Check
@@ -122,7 +121,6 @@ local function DestroyHub()
 	NoClip:Cleanup()
 	Flight:Cleanup()
 	InfiniteJump:Cleanup()
-	Hitbox:Cleanup()
 	Visuals:Cleanup()
 
 	PluginManager.CleanupAll()
@@ -246,25 +244,6 @@ local AirJumpToggle = MainTab:CreateToggle({
 	Callback = function(Value)
 		if Value then InfiniteJump:Enable() else InfiniteJump:Disable() end
 	end,
-})
-
-local HitboxToggle = MainTab:CreateToggle({
-	Name = "Hitbox Expansion",
-	CurrentValue = false,
-	Flag = "HitboxToggle",
-	Callback = function(Value)
-		if Value then Hitbox:Enable() else Hitbox:Disable() end
-	end,
-})
-
-local HitboxSlider = MainTab:CreateSlider({
-	Name = "Hitbox Size",
-	Range = {2, 10},
-	Increment = 1,
-	Suffix = "x",
-	CurrentValue = 5,
-	Flag = "HitboxSize",
-	Callback = function(Value) Hitbox.Size = Value end,
 })
 
 -- Visuals Tab
@@ -436,7 +415,6 @@ local KeybindsSection = KeybindsTab:CreateSection("Keybind Summary")
 KeybindsTab:CreateLabel("N  — NoClip Toggle", "keyboard")
 KeybindsTab:CreateLabel("F  — Flight Toggle", "keyboard")
 KeybindsTab:CreateLabel("J  — Air Jump Toggle", "keyboard")
-KeybindsTab:CreateLabel("H  — Hitbox Toggle", "keyboard")
 KeybindsTab:CreateLabel("P  — ESP Toggle", "keyboard")
 
 local KeybindsRemapSection = KeybindsTab:CreateSection("Remap Keybinds")
@@ -485,22 +463,6 @@ local AirJumpKeybind = KeybindsTab:CreateKeybind({
 		else
 			InfiniteJump:Enable()
 			AirJumpToggle:Set(true)
-		end
-	end,
-})
-
-local HitboxKeybind = KeybindsTab:CreateKeybind({
-	Name = "Hitbox Toggle",
-	CurrentKeybind = "H",
-	HoldToInteract = false,
-	Flag = "HitboxKeybind",
-	Callback = function()
-		if Hitbox.Enabled then
-			Hitbox:Disable()
-			HitboxToggle:Set(false)
-		else
-			Hitbox:Enable()
-			HitboxToggle:Set(true)
 		end
 	end,
 })
@@ -662,7 +624,6 @@ env.Hub = {
 	NoClip = NoClip,
 	Flight = Flight,
 	InfiniteJump = InfiniteJump,
-	Hitbox = Hitbox,
 	Visuals = Visuals,
 }
 env.Hub.MainTab = MainTab
